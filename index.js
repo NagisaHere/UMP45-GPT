@@ -3,10 +3,10 @@ require("dotenv/config")
 const { OpenAIApi, Configuration } = require("openai")
 
 const config = new Configuration({
-    apiKey: proccess.env.OPENAI_KEY
-})
+    apiKey: process.env.OPENAI_KEY,
+});
 
-const openai = new OpenAIApi(config)
+const openai = new OpenAIApi(config);
 
 const client = new Client({
     intents: [
@@ -23,7 +23,7 @@ client.once(Events.ClientReady, (clientUser) => {
 
 client.login(process.env.BOT_TOKEN)
 
-const BOT_CHANNEL = "616232786428428291"
+const BOT_CHANNEL = "1086249573623791658"
 const PAST_MESSAGES = 5
 
 client.on(Events.MessageCreate, async (message) => {
@@ -39,6 +39,28 @@ client.on(Events.MessageCreate, async (message) => {
     messages = messages.map(m=>m[1])
     messages.unshift(message)
 
+    let users = [...new Set([...messages.map(m=> m.author.displayName), client.user.username])]
+
+    let lastUser = users.pop()
+
+    let prompt = `The following is a conversation between ${users.join(", ")}, and ${lastUser}. \n\n`
+
+    for (let i = messages.length - 1; i >= 0; i--) {
+        const m = messages[i]
+        prompt += `${m.author.displayName}: ${m.content}\n`
+    }
+    prompt += `${client.user.username}:`
+    console.log("prompt:", prompt)
+    
+    const response = await openai.createCompletion({
+        prompt, 
+        model: "text-davinci-003",
+        max_tokens: 500,
+        stop: ["\n"]
+    })
+
+    console.log("response", response.data.choices[0].text)
+    await message.channel.send(response.data.choices[0].text)
 })
 
 
